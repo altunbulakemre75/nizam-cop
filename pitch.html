@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NIZAM — Anti-Drone Komuta Kontrol Sistemi</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@300;400;600;700&family=Barlow+Condensed:wght@700;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #070b0f;
+      --surface: #0d1318;
+      --border: #1a2530;
+      --accent: #00e5a0;
+      --accent2: #0084ff;
+      --danger: #ff3c3c;
+      --text: #c8d8e8;
+      --muted: #4a6070;
+      --mono: 'Share Tech Mono', monospace;
+      --sans: 'Barlow', sans-serif;
+      --cond: 'Barlow Condensed', sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-weight: 300;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,229,160,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,229,160,0.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.08) 2px,
+        rgba(0,0,0,0.08) 4px
+      );
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 18px 48px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(7,11,15,0.85);
+      backdrop-filter: blur(12px);
+    }
+
+    .nav-logo {
+      font-family: var(--cond);
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: 0.15em;
+      color: var(--accent);
+    }
+
+    .nav-logo span {
+      color: var(--muted);
+      font-weight: 300;
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      display: block;
+      margin-top: -2px;
+    }
+
+    .nav-tag {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 4px 12px;
+      border-radius: 2px;
+    }
+
+    .nav-tag::before { content: '[ '; color: var(--accent); }
+    .nav-tag::after { content: ' ]'; color: var(--accent); }
+
+    .hero {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 120px 48px 80px;
+      z-index: 1;
+    }
+
+    .hero-eyebrow {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--accent);
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .hero-eyebrow::before {
+      content: '';
+      display: inline-block;
+      width: 32px;
+      height: 1px;
+      background: var(--accent);
+    }
+
+    .hero-title {
+      font-family: var(--cond);
+      font-size: clamp(72px, 12vw, 160px);
+      font-weight: 900;
+      line-height: 0.9;
+      letter-spacing: -0.02em;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    .hero-title .accent { color: var(--accent); }
+
+    .hero-subtitle {
+      font-family: var(--cond);
+      font-size: clamp(18px, 3vw, 28px);
+      font-weight: 700;
+      letter-spacing: 0.25em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 40px;
+    }
+
+    .hero-desc {
+      max-width: 560px;
+      font-size: 16px;
+      color: var(--text);
+      line-height: 1.7;
+      margin-bottom: 48px;
+    }
+
+    .hero-stats {
+      display: flex;
+      gap: 48px;
+      flex-wrap: wrap;
+    }
+
+    .stat {
+      border-left: 2px solid var(--accent);
+      padding-left: 16px;
+    }
+
+    .stat-value {
+      font-family: var(--cond);
+      font-size: 32px;
+      font-weight: 900;
+      color: #fff;
+      line-height: 1;
+    }
+
+    .stat-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+
+    .radar-wrap {
+      position: absolute;
+      right: -80px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 500px;
+      height: 500px;
+      opacity: 0.15;
+    }
+
+    @media (min-width: 1200px) { .radar-wrap { opacity: 0.25; right: 48px; } }
+
+    .radar-svg { width: 100%; height: 100%; }
+
+    .radar-sweep {
+      transform-origin: 250px 250px;
+      animation: sweep 4s linear infinite;
+    }
+
+    @keyframes sweep {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .blink { animation: blink 2s ease-in-out infinite; }
+    .blink2 { animation: blink 2s ease-in-out 0.7s infinite; }
+    .blink3 { animation: blink 2s ease-in-out 1.3s infinite; }
+
+    @keyframes blink {
+      0%, 100% { opacity: 0; }
+      50% { opacity: 1; }
+    }
+
+    section {
+      position: relative;
+      z-index: 1;
+      padding: 96px 48px;
+      border-top: 1px solid var(--border);
+    }
+
+    .section-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--accent);
+      letter-spacing: 0.4em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-family: var(--cond);
+      font-size: clamp(32px, 5vw, 56px);
+      font-weight: 900;
+      color: #fff;
+      line-height: 1;
+      margin-bottom: 48px;
+    }
+
+    .problems {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+    }
+
+    .problem-item {
+      background: var(--surface);
+      padding: 32px;
+      position: relative;
+    }
+
+    .problem-item::before {
+      content: attr(data-num);
+      font-family: var(--cond);
+      font-size: 64px;
+      font-weight: 900;
+      color: var(--border);
+      position: absolute;
+      top: 16px;
+      right: 24px;
+      line-height: 1;
+    }
+
+    .problem-icon { font-size: 24px; margin-bottom: 16px; }
+
+    .problem-title {
+      font-family: var(--cond);
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--danger);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 10px;
+    }
+
+    .problem-text { font-size: 14px; color: var(--muted); line-height: 1.6; }
+
+    .approach-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+      align-items: start;
+    }
+
+    @media (max-width: 768px) { .approach-grid { grid-template-columns: 1fr; } }
+
+    .approach-text { font-size: 16px; line-height: 1.8; }
+    .approach-text p { margin-bottom: 20px; }
+    .approach-text strong { color: var(--accent); font-weight: 600; }
+
+    .tech-stack { display: flex; flex-direction: column; gap: 12px; }
+
+    .tech-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 14px 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent2);
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--text);
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .tech-item:hover {
+      border-left-color: var(--accent);
+      background: rgba(0,229,160,0.04);
+    }
+
+    .tech-cat {
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      width: 80px;
+      flex-shrink: 0;
+    }
+
+    .roadmap {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+    }
+
+    .phase { background: var(--surface); padding: 28px; }
+
+    .phase-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .phase-num {
+      font-family: var(--cond);
+      font-size: 11px;
+      font-weight: 900;
+      color: var(--bg);
+      background: var(--accent);
+      padding: 2px 8px;
+      letter-spacing: 0.1em;
+    }
+
+    .phase-weeks {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    .phase-title {
+      font-family: var(--cond);
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 12px;
+    }
+
+    .phase-items { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+
+    .phase-items li {
+      font-size: 13px;
+      color: var(--muted);
+      padding-left: 16px;
+      position: relative;
+    }
+
+    .phase-items li::before {
+      content: '›';
+      position: absolute;
+      left: 0;
+      color: var(--accent);
+    }
+
+    .market-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 24px;
+      margin-bottom: 48px;
+    }
+
+    .market-card {
+      padding: 28px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .market-card::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+    }
+
+    .market-card-title {
+      font-family: var(--cond);
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+
+    .market-card-text { font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+    .market-number {
+      font-family: var(--cond);
+      font-size: 48px;
+      font-weight: 900;
+      color: var(--accent);
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .market-number-label {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.15em;
+    }
+
+    .market-numbers {
+      display: flex;
+      gap: 48px;
+      flex-wrap: wrap;
+      padding: 32px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .founder-block {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 40px;
+      align-items: start;
+      padding: 40px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    @media (max-width: 600px) { .founder-block { grid-template-columns: 1fr; } }
+
+    .founder-avatar {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--cond);
+      font-size: 28px;
+      font-weight: 900;
+      color: var(--bg);
+      flex-shrink: 0;
+    }
+
+    .founder-name {
+      font-family: var(--cond);
+      font-size: 28px;
+      font-weight: 900;
+      color: #fff;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .founder-role {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--accent);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    .founder-bio { font-size: 14px; color: var(--muted); line-height: 1.7; }
+
+    .tag-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+
+    .tag {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--accent2);
+      border: 1px solid rgba(0,132,255,0.3);
+      padding: 3px 10px;
+      letter-spacing: 0.1em;
+    }
+
+    footer {
+      position: relative;
+      z-index: 1;
+      padding: 40px 48px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .footer-logo {
+      font-family: var(--cond);
+      font-size: 20px;
+      font-weight: 900;
+      color: var(--accent);
+      letter-spacing: 0.15em;
+    }
+
+    .footer-meta {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      text-align: right;
+    }
+
+    .pulse {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      background: var(--accent);
+      border-radius: 50%;
+      box-shadow: 0 0 0 0 rgba(0,229,160,0.4);
+      animation: pulse 2s infinite;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(0,229,160,0.4); }
+      70% { box-shadow: 0 0 0 10px rgba(0,229,160,0); }
+      100% { box-shadow: 0 0 0 0 rgba(0,229,160,0); }
+    }
+
+    .fade-in {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    .fade-in.visible { opacity: 1; transform: none; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">
+    NIZAM
+    <span>Anti-Drone C2 Platform</span>
+  </div>
+  <div class="nav-tag">TRL 3–4 · Aktif Geliştirme</div>
+</nav>
+
+<div class="hero">
+  <div class="hero-eyebrow">BTM İstanbul Ön Kuluçka Başvurusu · 2026</div>
+  <div class="hero-title">
+    <span class="accent">N</span>IZAM
+  </div>
+  <div class="hero-subtitle">Anti-Drone Komuta Kontrol Sistemi</div>
+  <p class="hero-desc">
+    Ticari drone tehditlerine karşı kritik tesisleri korumak için geliştirilmekte olan modüler, donanım-bağımsız komuta-kontrol yazılımı. Radar, RF, kamera ve akustik sensörleri tek operatör arayüzünde birleştirir.
+  </p>
+  <div class="hero-stats">
+    <div class="stat">
+      <div class="stat-value">4+</div>
+      <div class="stat-label">Sensör Tipi</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">18</div>
+      <div class="stat-label">Haftalık Yol Haritası</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">$6.6B</div>
+      <div class="stat-label">Küresel C-UAS Pazarı</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value"><span class="pulse"></span>Aktif</div>
+      <div class="stat-label">Geliştirme Durumu</div>
+    </div>
+  </div>
+
+  <div class="radar-wrap">
+    <svg class="radar-svg" viewBox="0 0 500 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="250" cy="250" r="240" stroke="#00e5a0" stroke-width="1" stroke-opacity="0.4"/>
+      <circle cx="250" cy="250" r="180" stroke="#00e5a0" stroke-width="1" stroke-opacity="0.3"/>
+      <circle cx="250" cy="250" r="120" stroke="#00e5a0" stroke-width="1" stroke-opacity="0.2"/>
+      <circle cx="250" cy="250" r="60" stroke="#00e5a0" stroke-width="1" stroke-opacity="0.2"/>
+      <line x1="250" y1="10" x2="250" y2="490" stroke="#00e5a0" stroke-width="0.5" stroke-opacity="0.2"/>
+      <line x1="10" y1="250" x2="490" y2="250" stroke="#00e5a0" stroke-width="0.5" stroke-opacity="0.2"/>
+      <line x1="80" y1="80" x2="420" y2="420" stroke="#00e5a0" stroke-width="0.5" stroke-opacity="0.15"/>
+      <line x1="420" y1="80" x2="80" y2="420" stroke="#00e5a0" stroke-width="0.5" stroke-opacity="0.15"/>
+      <g class="radar-sweep">
+        <path d="M250 250 L250 10 A240 240 0 0 1 410 130 Z" fill="url(#sweep-grad)" opacity="0.6"/>
+      </g>
+      <circle cx="310" cy="140" r="5" fill="#ff3c3c" class="blink"/>
+      <circle cx="170" cy="200" r="4" fill="#ff3c3c" class="blink2"/>
+      <circle cx="360" cy="300" r="6" fill="#ff3c3c" class="blink3"/>
+      <circle cx="250" cy="250" r="6" fill="#00e5a0"/>
+      <defs>
+        <radialGradient id="sweep-grad" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse"
+          gradientTransform="translate(250 250) rotate(0) scale(240)">
+          <stop offset="0%" stop-color="#00e5a0" stop-opacity="0.3"/>
+          <stop offset="100%" stop-color="#00e5a0" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+    </svg>
+  </div>
+</div>
+
+<section>
+  <div class="section-label">// 01 · Problem</div>
+  <div class="section-title">Mevcut Sistemlerin Sınırlılıkları</div>
+  <div class="problems fade-in">
+    <div class="problem-item" data-num="01">
+      <div class="problem-icon">🔒</div>
+      <div class="problem-title">Kapalı Mimari</div>
+      <div class="problem-text">Operatörün kendi sensörünü veya iş akışını entegre etmesi neredeyse imkânsız. Tesis özelinde adaptasyon mümkün değil.</div>
+    </div>
+    <div class="problem-item" data-num="02">
+      <div class="problem-icon">⚙️</div>
+      <div class="problem-title">Tek Üretici Kilidi</div>
+      <div class="problem-text">Yedek parça, yazılım güncellemesi ve eğitim için tek bir tedarikçiye bağımlılık. Uzun vadede maliyet kontrolü yok.</div>
+    </div>
+    <div class="problem-item" data-num="03">
+      <div class="problem-icon">💸</div>
+      <div class="problem-title">Yüksek Sahip Olma Maliyeti</div>
+      <div class="problem-text">Kurulum sonrası yıllık bakım kontratları toplam maliyeti katlıyor. Orta ölçekli tesisler için ekonomik değil.</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="section-label">// 02 · Yaklaşım</div>
+  <div class="section-title">NIZAM'ın Farkı</div>
+  <div class="approach-grid fade-in">
+    <div class="approach-text">
+      <p>NIZAM; <strong>radar, RF, kamera ve akustik</strong> gibi farklı sensör tiplerinin verisini tek bir operatör arayüzünde birleştiren, modüler ve donanım-bağımsız bir komuta-kontrol katmanıdır.</p>
+      <p>Tesis operatörü kendi sensörünü, kendi haberleşme altyapısını ve kendi iş akışını sisteme bağlayabilir. Açık çekirdek mimarisi sayesinde <strong>tedarikçi bağımlılığı ortadan kalkar</strong>.</p>
+      <p>Sistem; YOLO (görüntü tespiti), Kalman filtreleri (çoklu hedef takibi), PX4 (opsiyonel müdahale) ve <strong>NATO-uyumlu TAK/CoT mesajlaşma</strong> entegrasyonunu tek çatı altında çalıştırır.</p>
+    </div>
+    <div class="tech-stack">
+      <div class="tech-item"><span class="tech-cat">Tespit</span> YOLO · Görüntü & Nesne Tanıma</div>
+      <div class="tech-item"><span class="tech-cat">Takip</span> Kalman Filtresi · Çoklu Hedef</div>
+      <div class="tech-item"><span class="tech-cat">Füzyon</span> Radar + RF + Kamera + Akustik</div>
+      <div class="tech-item"><span class="tech-cat">Haberleşme</span> TAK/CoT · NATO Uyumlu</div>
+      <div class="tech-item"><span class="tech-cat">Görselleştirme</span> CesiumJS · 3B Harita</div>
+      <div class="tech-item"><span class="tech-cat">Müdahale</span> PX4 · Opsiyonel Entegrasyon</div>
+      <div class="tech-item"><span class="tech-cat">AI Karar</span> LLM Destekli Öneri Katmanı</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="section-label">// 03 · Yol Haritası</div>
+  <div class="section-title">18 Haftalık Prototip Planı</div>
+  <div class="roadmap fade-in">
+    <div class="phase">
+      <div class="phase-header">
+        <div class="phase-num">AŞAMA 1</div>
+        <div class="phase-weeks">Hafta 1–5</div>
+      </div>
+      <div class="phase-title">Temel Altyapı</div>
+      <ul class="phase-items">
+        <li>Veri omurgası kurulumu</li>
+        <li>Sensör adaptör arayüzü</li>
+        <li>Temel C2 iskeleti</li>
+        <li>Kamera + YOLO doğrulama</li>
+      </ul>
+    </div>
+    <div class="phase">
+      <div class="phase-header">
+        <div class="phase-num">AŞAMA 2</div>
+        <div class="phase-weeks">Hafta 6–10</div>
+      </div>
+      <div class="phase-title">Çoklu Sensör Füzyonu</div>
+      <ul class="phase-items">
+        <li>Kalman filtresi entegrasyonu</li>
+        <li>Çoklu hedef takibi</li>
+        <li>Radar/RF simülasyonu</li>
+        <li>Tehdit sınıflandırma</li>
+      </ul>
+    </div>
+    <div class="phase">
+      <div class="phase-header">
+        <div class="phase-num">AŞAMA 3</div>
+        <div class="phase-weeks">Hafta 11–14</div>
+      </div>
+      <div class="phase-title">Operatör Arayüzü</div>
+      <ul class="phase-items">
+        <li>CesiumJS 3B harita</li>
+        <li>TAK/CoT mesajlaşma</li>
+        <li>Kural tabanlı karar desteği</li>
+        <li>Operatör dashboard'u</li>
+      </ul>
+    </div>
+    <div class="phase">
+      <div class="phase-header">
+        <div class="phase-num">AŞAMA 4</div>
+        <div class="phase-weeks">Hafta 15–18</div>
+      </div>
+      <div class="phase-title">Entegre Demo</div>
+      <ul class="phase-items">
+        <li>Uçtan uca lab senaryosu</li>
+        <li>TRL 6 prototip doğrulama</li>
+        <li>Demo video üretimi</li>
+        <li>Teknik dokümantasyon</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="section-label">// 04 · Pazar</div>
+  <div class="section-title">Hedef Kitle & Pazar Büyüklüğü</div>
+  <div class="market-grid fade-in">
+    <div class="market-card">
+      <div class="market-card-title">✈️ Havalimanları</div>
+      <div class="market-card-text">Bölgesel ve özel havalimanı işletmecileri — drone ihlali olayları hızla artıyor.</div>
+    </div>
+    <div class="market-card">
+      <div class="market-card-title">⚡ Enerji Tesisleri</div>
+      <div class="market-card-text">Rafineri, doğalgaz ve trafo merkezleri — tesis bazlı izleme kritik ihtiyaç.</div>
+    </div>
+    <div class="market-card">
+      <div class="market-card-title">🏛️ Cezaevleri</div>
+      <div class="market-card-text">Kaçakçılık amaçlı drone kullanımına karşı idari savunma sistemleri.</div>
+    </div>
+    <div class="market-card">
+      <div class="market-card-title">🏟️ Özel Güvenlik</div>
+      <div class="market-card-text">Stadyum ve büyük etkinliklerde geçici kurulum senaryoları.</div>
+    </div>
+  </div>
+  <div class="market-numbers fade-in">
+    <div>
+      <div class="market-number">$6.6B</div>
+      <div class="market-number-label">Küresel C-UAS Pazarı (2025)</div>
+    </div>
+    <div>
+      <div class="market-number">$20B</div>
+      <div class="market-number-label">Tahmin (2030)</div>
+    </div>
+    <div>
+      <div class="market-number">3x</div>
+      <div class="market-number-label">5 Yılda Büyüme</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="section-label">// 05 · Kurucu</div>
+  <div class="section-title">Ekip</div>
+  <div class="founder-block fade-in">
+    <div class="founder-avatar">EA</div>
+    <div>
+      <div class="founder-name">Emre Altunbulak</div>
+      <div class="founder-role">Solo Geliştirici & Kurucu</div>
+      <div class="founder-bio">
+        Makine mühendisi, Atatürk Üniversitesi Astronomi & Uzay Bilimleri yüksek lisans öğrencisi. TEKNOFEST roket yarışmaları (2021, 2022) ve TÜBİTAK elektrikli araç projesi (CFD/FEA) geçmişiyle savunma ve uzay sistemleri üzerine çalışmaktadır. NIZAM'ın tüm sistem mimarisini, 18 haftalık geliştirme planını ve teknik yol haritasını bağımsız olarak hazırlamıştır.
+      </div>
+      <div class="tag-list">
+        <span class="tag">Makine Mühendisliği</span>
+        <span class="tag">Astronomi & Uzay Bilimleri MSc</span>
+        <span class="tag">TEKNOFEST</span>
+        <span class="tag">TÜBİTAK</span>
+        <span class="tag">C2 Sistemleri</span>
+        <span class="tag">Sensör Füzyonu</span>
+        <span class="tag">Python · FastAPI · React</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-logo">NIZAM</div>
+  <div class="footer-meta">
+    BTM İstanbul Ön Kuluçka Başvurusu<br>
+    Nisan 2026 · Emre Altunbulak<br>
+    github.com/altunbulakemre75
+  </div>
+</footer>
+
+<script>
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) e.target.classList.add('visible');
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
